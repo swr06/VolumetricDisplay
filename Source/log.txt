@@ -1,4 +1,7 @@
 
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_AlbedoMap  
+
+
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_NormalMap  
 
 
@@ -11,6 +14,9 @@ ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_MetalnessMap
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_MetalnessRoughnessMap  
 
 
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_CatmullRom  
+
+
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_NormalFix  
 
 
@@ -20,10 +26,16 @@ ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_ViewerPosition
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_RoughnessMultiplier  
 
 
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_ScaleLODBias  
+
+
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_Dimensions  
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_UsesGLTFPBR  
+
+
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_UsesAlbedoTexture  
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_UsesRoughnessMap  
@@ -39,6 +51,9 @@ ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_EmissiveColor
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_EmissivityAmount  
+
+
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_ModelColor  
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_ModelEmission  
@@ -57,6 +72,9 @@ ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_Transparency
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_GlassFactor  
+
+
+ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_EntityNumber  
 
 
 ERROR! : UNIFORM NOT FOUND!    |    UNIFORM : u_Texture  

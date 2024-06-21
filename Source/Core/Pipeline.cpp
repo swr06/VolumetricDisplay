@@ -541,7 +541,7 @@ void Candela::StartPipeline()
 		float Hash = RNG.Float();
 		MainModelEntity.m_Model = glm::rotate(glm::mat4(1.0f), CurrentAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 		MainModelEntity.m_Model *= glm::scale(glm::mat4(1.0f), glm::vec3(4.0f, 6.0f, 0.1f));
-		CurrentAngle += (60.0f * 600.0f * 8.0f * 3.14f * DeltaTime) + DeltaTime * 100. * (Hash * 2. - 1.);
+		//CurrentAngle += (60.0f * 600.0f * 8.0f * 3.14f * DeltaTime) + DeltaTime * 100. * (Hash * 2. - 1.);
 
 		// Render GBuffer
 
