@@ -178,7 +178,6 @@
     <ClInclude Include="Core\GLClasses\VertexArray.h" />
     <ClInclude Include="Core\GLClasses\VertexBuffer.h" />
     <ClInclude Include="Core\Mesh.h" />
-    <ClInclude Include="Core\MeshOptimizer.h" />
     <ClInclude Include="Core\ModelFileLoader.h" />
     <ClInclude Include="Core\ModelRenderer.h" />
     <ClInclude Include="Core\Object.h" />
@@ -186,14 +185,11 @@
     <ClInclude Include="Core\Pipeline.h" />
     <ClInclude Include="Core\ShaderManager.h" />
     <ClInclude Include="Core\SphereLight.h" />
-    <ClInclude Include="Core\TAAJitter.h" />
     <ClInclude Include="Core\Threadpool.h" />
-    <ClInclude Include="Core\Tonemap.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
     <ClInclude Include="Core\Utils\Timer.h" />
     <ClInclude Include="Core\Utils\Vertex.h" />
-    <ClInclude Include="Core\Voxelizer.h" />
     <ClInclude Include="Dependencies\crc\CRC.h" />
     <ClInclude Include="Dependencies\imguizmo\GraphEditor.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -241,17 +237,13 @@
     <ClCompile Include="Core\GLClasses\VertexArray.cpp" />
     <ClCompile Include="Core\GLClasses\VertexBuffer.cpp" />
     <ClCompile Include="Core\Mesh.cpp" />
-    <ClCompile Include="Core\MeshOptimizer.cpp" />
     <ClCompile Include="Core\ModelFileLoader.cpp" />
     <ClCompile Include="Core\ModelRenderer.cpp" />
     <ClCompile Include="Core\Object.cpp" />
     <ClCompile Include="Core\OrthographicCamera.cpp" />
     <ClCompile Include="Core\Pipeline.cpp" />
     <ClCompile Include="Core\ShaderManager.cpp" />
-    <ClCompile Include="Core\TAAJitter.cpp" />
     <ClCompile Include="Core\Threadpool.cpp" />
-    <ClCompile Include="Core\Tonemap.cpp" />
-    <ClCompile Include="Core\Voxelizer.cpp" />
     <ClCompile Include="Dependencies\glad\src\glad.c" />
     <ClCompile Include="Dependencies\imguizmo\GraphEditor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -280,17 +272,9 @@
     <None Include="Core\Shaders\BasicBlit.glsl" />
     <None Include="Core\Shaders\BasicFrag.glsl" />
     <None Include="Core\Shaders\BasicVert.glsl" />
-    <None Include="Core\Shaders\ClearData.comp" />
-    <None Include="Core\Shaders\ClearIntData.comp" />
-    <None Include="Core\Shaders\ClearVolume.comp" />
-    <None Include="Core\Shaders\ClearVVolume.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
-    <None Include="Core\Shaders\GeometryFrag.glsl" />
-    <None Include="Core\Shaders\GeometryVert.glsl" />
+    <None Include="Core\Shaders\Render.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
-    <None Include="Core\Shaders\VoxelizationGeometry.geom" />
-    <None Include="Core\Shaders\VoxelizationRadiance.glsl" />
-    <None Include="Core\Shaders\VoxelizationVertex.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

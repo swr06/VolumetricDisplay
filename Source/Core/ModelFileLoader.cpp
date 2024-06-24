@@ -6,7 +6,6 @@
 #include <assimp/postprocess.h>
 #include <chrono>
 
-#include "MeshOptimizer.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -265,20 +264,14 @@ namespace Candela
 
 			bool optimize = false;
 
-			if (optimize) {
-				PartialOptimize(*object);
-			}
-
-			else {
-				for (auto& e : object->m_Meshes)
-				{
-					e.m_AlbedoMap.CreateTexture(e.TexturePaths[0], true, true);
-					e.m_NormalMap.CreateTexture(e.TexturePaths[1], false, true);
-					e.m_RoughnessMap.CreateTexture(e.TexturePaths[2], false, true);
-					e.m_MetalnessMap.CreateTexture(e.TexturePaths[3], false, true);
-					e.m_AmbientOcclusionMap.CreateTexture(e.TexturePaths[4], false, true);
-					e.m_MetalnessRoughnessMap.CreateTexture(e.TexturePaths[5], false, true);
-				}
+			for (auto& e : object->m_Meshes)
+			{
+				e.m_AlbedoMap.CreateTexture(e.TexturePaths[0], true, true);
+				e.m_NormalMap.CreateTexture(e.TexturePaths[1], false, true);
+				e.m_RoughnessMap.CreateTexture(e.TexturePaths[2], false, true);
+				e.m_MetalnessMap.CreateTexture(e.TexturePaths[3], false, true);
+				e.m_AmbientOcclusionMap.CreateTexture(e.TexturePaths[4], false, true);
+				e.m_MetalnessRoughnessMap.CreateTexture(e.TexturePaths[5], false, true);
 			}
 
 			for (auto& mesh : object->m_Meshes) {

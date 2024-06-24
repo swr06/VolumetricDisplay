@@ -6,7 +6,7 @@ static std::unordered_map<std::string, GLClasses::ComputeShader> ShaderManager_S
 
 void Candela::ShaderManager::CreateShaders()
 {
-	AddShader("GBUFFER", "Core/Shaders/GeometryVert.glsl", "Core/Shaders/GeometryFrag.glsl");
+	AddShader("RT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/Render.glsl");
 	AddShader("BASIC_BLIT", "Core/Shaders/FBOVert.glsl", "Core/Shaders/BasicBlit.glsl");
 }
 

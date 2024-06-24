@@ -165,9 +165,6 @@
     <ClInclude Include="Core\Entity.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\MeshOptimizer.h">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClInclude>
     <ClInclude Include="Core\GLClasses\DepthBuffer.h">
       <Filter>Source Files\Lumen\GLClasses</Filter>
     </ClInclude>
@@ -191,9 +188,6 @@
     </ClInclude>
     <ClInclude Include="Dependencies\crc\CRC.h">
       <Filter>Source Files\Dependencies\crc</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\TAAJitter.h">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Player.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
@@ -236,12 +230,6 @@
     </ClInclude>
     <ClInclude Include="Dependencies\implot\implot_internal.h">
       <Filter>Source Files\Dependencies\implot</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Tonemap.h">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Voxelizer.h">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\SphereLight.h">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
@@ -341,9 +329,6 @@
     <ClCompile Include="Core\ModelRenderer.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\MeshOptimizer.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
     <ClCompile Include="Core\GLClasses\DepthBuffer.cpp">
       <Filter>Source Files\Lumen\GLClasses</Filter>
     </ClCompile>
@@ -360,9 +345,6 @@
       <Filter>Source Files\Lumen\Lumen-Core\ThreadPool</Filter>
     </ClCompile>
     <ClCompile Include="Core\ShaderManager.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\TAAJitter.cpp">
       <Filter>Source Files\Lumen\Lumen-Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\Player.cpp">
@@ -398,12 +380,6 @@
     <ClCompile Include="Dependencies\implot\implot_items.cpp">
       <Filter>Source Files\Dependencies\implot</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Tonemap.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Voxelizer.cpp">
-      <Filter>Source Files\Lumen\Lumen-Core</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Physics\PhysicsApi.cpp">
       <Filter>Source Files\Lumen\Lumen-Core\Physics</Filter>
     </ClCompile>
@@ -424,37 +400,13 @@
     <None Include="Core\Shaders\BasicVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\ClearData.comp">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\ClearIntData.comp">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\ClearVolume.comp">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
     <None Include="Core\Shaders\FBOVert.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
     <None Include="Core\Shaders\TraverseBVH.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
-    <None Include="Core\Shaders\VoxelizationGeometry.geom">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\VoxelizationRadiance.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\VoxelizationVertex.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\ClearVVolume.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\GeometryFrag.glsl">
-      <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
-    </None>
-    <None Include="Core\Shaders\GeometryVert.glsl">
+    <None Include="Core\Shaders\Render.glsl">
       <Filter>Source Files\Lumen\Lumen-Core\Lumen-Shaders</Filter>
     </None>
   </ItemGroup>
