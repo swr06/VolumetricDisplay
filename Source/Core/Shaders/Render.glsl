@@ -21,7 +21,7 @@ layout (std430, binding = 0) buffer MatrixSSBO {
 	mat4 Matrices[];
 };
 
-const vec3 BoxExtent = vec3(4.0f, 6.0f, 0.1f);
+const vec3 BoxExtent = vec3(4.0f, 8.0f, 0.1f);
 
 float HASH2SEED = 0.0f;
 vec2 hash2() 
@@ -60,6 +60,7 @@ vec2 GetBoxUV(vec3 p, in vec3 n)
     return fract(MeaningfulPos);
 }
 
+
 vec3 RayColor(in vec3 RayOrigin, in vec3 RayDirection, in vec3 InvDir) {
     vec3 N = vec3(-1.);
 
@@ -73,7 +74,26 @@ vec3 RayColor(in vec3 RayOrigin, in vec3 RayDirection, in vec3 InvDir) {
 
     vec2 UV = GetBoxUV(P, N);
 
-    return vec3(UV,0.0f);
+    const float dotSpace = 8.0;
+    const float dotSize = 3.0;
+    const float sinPer = 3.141592 / dotSpace;
+    const float frac = dotSize / dotSpace;
+    const float DotMatrixScreenRes = 128.0f;
+
+    float Aspect = BoxExtent.x / BoxExtent.y;
+
+    vec2 fragCoord = UV * vec2(DotMatrixScreenRes * Aspect,DotMatrixScreenRes);
+
+    vec2 Hash = hash2();
+
+    float varyX = (abs(sin(sinPer * fragCoord.x + Hash.x)) - frac);
+    float varyY = (abs(sin(sinPer * fragCoord.y + Hash.y)) - frac);
+    float pointX = floor(fragCoord.x / dotSpace) * dotSpace + (0.5 * dotSpace);
+    float pointY = floor(fragCoord.y / dotSpace) * dotSpace + (0.5 * dotSpace);
+
+    vec3 c = (vec3(Hash.x,Hash.y,hash2().y) * varyX * varyY) * (2.0/frac);;
+
+    return vec3(c);
 }
 
 void main() {
@@ -87,7 +107,7 @@ void main() {
     vec3 N; 
 
     // Box test
-    if (IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).x < 0.0f) {
+    if (IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).x < 0.0f && IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).y < 0.0f) {
         o_Color = vec4(vec3(0.), 1.);
         return;
     }
