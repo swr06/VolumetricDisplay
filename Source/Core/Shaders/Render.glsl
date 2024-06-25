@@ -1,4 +1,9 @@
 #version 450 core
+
+#include "SDF.glsl"
+
+#define PI 3.14159265359 
+
 layout (location = 0) out vec4 o_Color;
 
 uniform sampler2D u_Input;
@@ -14,21 +19,48 @@ uniform vec2 u_Res;
 
 uniform int u_Subframes;
 
+uniform float u_Thickness;
+uniform int u_SHAPE;
+
+uniform sampler2D u_Circuit;
+
 in vec2 v_TexCoords;
 
-
+// Ext 
 layout (std430, binding = 0) buffer MatrixSSBO {
 	mat4 Matrices[];
 };
 
+layout (std430, binding = 1) buffer Matrix2SSBO {
+	mat4 SmoothMatrices[];
+};
+
+// Usecase -> 
+// If you want to use this with an actual LED, it should be easily achievable by outputting each subframe to a texture 
+//layout (std430, binding = 2) buffer OutputSSBO {
+//	uint Packed[]
+//};
+
+// Subframe 
+int SUBFRAME = 0;
+
+// Screen
+float Spacing = 8.0f;
+float BlotchMagnitude = 3.0;
+float DotMatrixScreenRes = 128.0f;
 const vec3 BoxExtent = vec3(4.0f, 8.0f, 0.1f);
 
+// RNG 
 float HASH2SEED = 0.0f;
 vec2 hash2() 
 {
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
+vec3 GetSky(float R)
+{
+    return 1.0f * mix(vec3(0.2f, 0.4f, 0.8f), mix(vec3(1.0f), vec3(1.0f, 0.3f, 0.0f) * 1.5f, 1.0f - clamp(pow(0.0f,1.0f/15.0f),0.8f,1.f)),sqrt(1.0f-R)/1.3f);
+}
 
 vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
@@ -51,6 +83,25 @@ vec2 IntersectBox(in vec3 ro, in vec3 rd, in vec3 invdir, in vec3 rad, out vec3 
     return vec2( tN, tF );
 }
 
+float sdfOct(in vec3 pos)
+{
+    return sdfoctt(pos,0.5-0.05f) - 0.05f;
+}
+
+float sdfSph(in vec3 pos)
+{
+    float ra = 0.5;
+    float rb = 0.35+0.20*cos(u_Time*1.1+4.0);
+    float di = 0.50+0.15*cos(u_Time*1.7);
+    return sdCutSph(pos, ra, rb, di );
+}
+
+float sdfBox(vec3 Point) {
+    vec3 Distance = abs(Point) - vec3(0.5f); // <- gets to center of box
+    float CorrectionFactor = min(max(Distance.x, max(Distance.y, Distance.z)), 0.0);
+    return CorrectionFactor + length(max(Distance, 0.0));
+}
+
 vec2 GetBoxUV(vec3 p, in vec3 n)
 {
     p /= BoxExtent;
@@ -60,40 +111,130 @@ vec2 GetBoxUV(vec3 p, in vec3 n)
     return fract(MeaningfulPos);
 }
 
+vec3 GetBitmask(vec3 n) {
+    vec3 Mapping = abs(n);
+    return vec3(0.0f, 1.0f, 1.0f) * Mapping.x + vec3(1.0f, 0.0f, 1.0f) * Mapping.y + vec3(1.0f, 1.0f, 0.0f) * Mapping.z;
+}
 
-vec3 RayColor(in vec3 RayOrigin, in vec3 RayDirection, in vec3 InvDir) {
-    vec3 N = vec3(-1.);
 
-    vec2 Box = IntersectBox(RayOrigin, RayDirection, InvDir,BoxExtent , N);
+bool LEDMatrix(vec3 p) {
+ 
+    //if (distance(p, vec3(0.5)) < 0.3) {
+    //    return true;
+    //}
+    //
+    //return false;
 
-    if (Box.x < 0.0f) {
-        return vec3(0.0f); // Sky
+    //if ( (p.x+p.y+p.z) % 2 == 0) {
+    //    return true;
+    //}
+
+    //if (  p.x == p.y && p.x == p.z) {
+    //    return true;
+    //}
+
+    p = p * 2.0f - 1.0f;
+    p *= BoxExtent.xyx;
+
+    p /= 4.0f;
+
+    p = (SmoothMatrices[SUBFRAME] * vec4(p, 0.0f)).xyz;
+
+    //if (distance(p, vec3(0.0f)) < 1.25f) {
+    //    return true;
+    //}
+
+    //if (abs(p.x) + abs(p.y) + abs(p.z) < 4.0f) {
+    //    return true;
+    //}
+
+    float d = -1.0f;
+
+    switch (u_SHAPE) {
+
+        case 0 : {
+            d = sdfBox(p);
+            break;
+        };
+
+        case 1 : {
+            d = sdfOct(p);
+            break;
+        };
+
+        case 2 : {
+            d = sdfSph(p);
+            break;
+        };
+
+        default : {
+            d = sdfSph(p);
+        }
     }
 
-    vec3 P = (RayOrigin + RayDirection * Box.x);
+    if (d < (0.05f*u_Thickness) && d > 0.0f) {
+        return true;
+    }
 
-    vec2 UV = GetBoxUV(P, N);
+    return false;
+}
 
-    const float dotSpace = 8.0;
-    const float dotSize = 3.0;
-    const float sinPer = 3.141592 / dotSpace;
-    const float frac = dotSize / dotSpace;
-    const float DotMatrixScreenRes = 128.0f;
+
+vec3 RayColor(in vec3 AcRayOrigin, in vec3 AcRayDirection, in vec3 TrRayOrigin, in vec3 TrRayDirection, in vec3 InvDir, in mat4 Mat) {
+    vec3 N = vec3(-1.);
+
+    vec2 Box = IntersectBox(TrRayOrigin, TrRayDirection, InvDir,BoxExtent , N);
+
+    if (Box.x < 0.0f) {
+        return GetSky(AcRayDirection.y); // Sky
+    }
+
+    vec3 LocalPoint = TrRayOrigin + TrRayDirection * Box.x;
+    vec3 Point = AcRayOrigin + AcRayDirection * Box.x;
+    //vec3 Point = (inverse(Mat) * vec4(LocalPoint, 1.0f)).xyz;
+
+    vec2 UV = GetBoxUV(LocalPoint, N);
+
+    bool Screenface = N == vec3(0.0f, 0.0f, 1.0f);
 
     float Aspect = BoxExtent.x / BoxExtent.y;
+    vec2 LocalCoord = UV * vec2(DotMatrixScreenRes * Aspect,DotMatrixScreenRes);
 
-    vec2 fragCoord = UV * vec2(DotMatrixScreenRes * Aspect,DotMatrixScreenRes);
+    vec2 SinWave;
+    SinWave.x = clamp(1.0f - exp(-pow(abs(sin((PI / Spacing) * LocalCoord.x)) - (BlotchMagnitude / Spacing), 4.0f) * 10.0f), 0.0f, 1.0f);
+    SinWave.y = clamp(1.0f - exp(-pow(abs(sin((PI / Spacing) * LocalCoord.y)) - (BlotchMagnitude / Spacing), 4.0f) * 10.0f), 0.0f, 1.0f);
 
-    vec2 Hash = hash2();
+    // Matrix coordinate 
+    int Px = int(floor(LocalCoord.x / Spacing) * Spacing + (0.5 * Spacing) / 8.0f);
+    int Py = int(floor(LocalCoord.y / Spacing) * Spacing + (0.5 * Spacing) / 8.0f);
 
-    float varyX = (abs(sin(sinPer * fragCoord.x + Hash.x)) - frac);
-    float varyY = (abs(sin(sinPer * fragCoord.y + Hash.y)) - frac);
-    float pointX = floor(fragCoord.x / dotSpace) * dotSpace + (0.5 * dotSpace);
-    float pointY = floor(fragCoord.y / dotSpace) * dotSpace + (0.5 * dotSpace);
+    vec3 ComputedColor = vec3(0.2,0.2,0.2) * 1.0f; // gray 
 
-    vec3 c = (vec3(Hash.x,Hash.y,hash2().y) * varyX * varyY) * (2.0/frac);;
+    //for (int i = 2 ; i <= 14 ; i += 2) {
+    //    if (Px == 2 && Py == i && Screenface) {
+    //        ComputedColor = vec3(1., 1., 1.) * 25.0f;
+    //    }
+    //
+    //     if (Px == 5 && Py == i && Screenface) {
+    //        ComputedColor = vec3(1., 1., 1.) * 25.0f;
+    //    }
+    //}
 
-    return vec3(c);
+    vec3 SamplePosition = Point;
+    SamplePosition /= BoxExtent.xyx;
+    SamplePosition = SamplePosition * 0.5f + 0.5f;
+
+    //SamplePosition = (floor((SamplePosition * vec3(128.0f, 256.0f, 128.0f) * 0.5f) / dotSpace) * dotSpace + (0.5 * dotSpace)) / 8.0f;
+
+    if (LEDMatrix((SamplePosition))) {
+        ComputedColor = vec3(1., 1., 1.) * 12.0f;
+    }
+
+    vec3 FinalColor = ComputedColor ; 
+    //vec3 FinalColor = (ComputedColor*SinWave.x*SinWave.y)*(2.0f/(BlotchMagnitude/Spacing));
+
+    return Screenface ? vec3(FinalColor) : vec3(0.0f, 0.2f, 0.0f) * texture(u_Circuit, UV * vec2(Aspect, 1.0f)).x;
+
 }
 
 void main() {
@@ -108,14 +249,17 @@ void main() {
 
     // Box test
     if (IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).x < 0.0f && IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).y < 0.0f) {
-        o_Color = vec4(vec3(0.), 1.);
+        o_Color = vec4(GetSky(RayDirection.y), 1.);
+        o_Color.xyz = 1.0f - exp(-o_Color.xyz);
         return;
     }
 
     vec3 Color = vec3(0.0f);
 
 
-    for (int i = 0 ; i < u_Subframes ; i++) {
+    for (SUBFRAME = 0 ; SUBFRAME < u_Subframes ; SUBFRAME++) {
+        
+        int i = SUBFRAME;
 
         vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f) * 0.2f;
         vec2 Hash2 = hash2();
@@ -125,12 +269,14 @@ void main() {
         vec3 CurrentRayDirection = vec3(Matrices[i] * vec4(RayDirection, 0.0f));
         vec3 InvDir = 1.0f / CurrentRayDirection;
 
-        vec3 CurrentColor = RayColor(CurrentRayOrigin, CurrentRayDirection, InvDir);
+        vec3 CurrentColor = RayColor(RayOrigin, RayDirection, CurrentRayOrigin, CurrentRayDirection, InvDir, Matrices[i]);
 
         Color += CurrentColor;
     }
 
     Color /= float(u_Subframes);
+
+    Color = 1.0f - exp(-Color);
 
     o_Color = vec4(vec3(Color),1.);
 }

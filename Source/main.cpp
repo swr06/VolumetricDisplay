@@ -1,4 +1,4 @@
-
+// Built with Candela by swr06 :)
 
 #include "Core/Pipeline.h"
 

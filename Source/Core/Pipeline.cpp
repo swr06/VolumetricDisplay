@@ -15,8 +15,6 @@
 #include "ShaderManager.h"
 #include "Utils/Timer.h"
 
-#include "Physics/PhysicsApi.h"
-
 
 #include "Utils/Random.h"
 
@@ -49,13 +47,7 @@ Candela::Player Player;
 Candela::FPSCamera& Camera = Player.Camera;
 
 static bool vsync = true;
-static glm::vec3 _SunDirection = glm::vec3(0.1f, -1.0f, 0.1f);
 static Random RNG;
-
-//
-// Physics
-Candela::PhysicsHandler MainPhysicsHandler;
-//
 
 // Options
 
@@ -75,7 +67,16 @@ float DeltaTime = 0.0f;
 
 // SIM 
 float RotSpeed = 1.0f;
-int Subframes = 72;
+int Subframes = 128;
+
+float ShapeSpeed = 0.5f;
+float ShapeThickness = 1.0f;
+int CurrentShape = 0;
+
+float AngleBias = 0.0f;
+float CurrentBoxAngle = 0.0f;
+float CurrentBoxAngleSmooth = 0.0f;
+
 
 // Render list 
 std::vector<Candela::Entity*> EntityRenderList;
@@ -129,13 +130,19 @@ public:
 			ImGui::NewLine();
 			ImGui::SliderFloat("Player Speed", &SpeedMultiplier, 0.01f, 24.0f);
 			ImGui::NewLine();
-			ImGui::SliderFloat("Rotation Speed", &RotSpeed, 0.0f, 6.0f);
+			ImGui::SliderFloat("Rotation Speed", &RotSpeed, 0.0f, 4.0f);
+			ImGui::SliderFloat("Angle Bias", &AngleBias, -6.282, 6.282);
+			ImGui::SliderFloat("Current Angle", &CurrentBoxAngle, CurrentBoxAngle + -6.282, CurrentBoxAngle + 6.282);
 			ImGui::SliderInt("Subframes", &Subframes, 1, 384);
 			ImGui::NewLine();
-			ImGui::SliderFloat3("Sun Direction", &_SunDirection[0], -1.0f, 1.0f);
+			ImGui::SliderInt("Current Shape", &CurrentShape, 0, 2);
+			ImGui::SliderFloat("Shape Thickness", &ShapeThickness, 0.1f, 8.0f);
+			ImGui::SliderFloat("Shape Rotation Speed", &ShapeSpeed, 0.0f, 4.0f);
 			ImGui::NewLine();
 
-			ImGui::Checkbox("Face Cull?", & DoFaceCulling);
+			if (ImGui::Button("Reset Angle")) {
+				CurrentBoxAngle = 0.0f;
+			}
 			
 
 		} ImGui::End();
@@ -257,7 +264,6 @@ void Candela::StartPipeline()
 	// Create the main model 
 	Entity MainModelEntity(&MainModel);
 
-	float CurrentAngle = 0.0f;
 
 
 	// Create VBO and VAO for drawing the screen-sized quad.
@@ -282,6 +288,10 @@ void Candela::StartPipeline()
 		ScreenQuadVAO.Unbind();
 	}
 
+	// Circuit 
+	GLClasses::Texture CircuitBoard;
+	CircuitBoard.CreateTexture("Res/board.jpg", false, false);
+
 	// Create Shaders
 	ShaderManager::CreateShaders();
 
@@ -303,9 +313,16 @@ void Candela::StartPipeline()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, MatrixSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 16 * (1024+1), (void*)0, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	GLuint SmoothMatrixSSBO = 0;
+	glGenBuffers(1, &SmoothMatrixSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SmoothMatrixSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 16 * (1024 + 1), (void*)0, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	
 	// Motion Blur
 	glm::mat4* Matrices = new glm::mat4[1024];
+	glm::mat4* SmoothMatrices = new glm::mat4[1024];
 
 	while (!glfwWindowShouldClose(app.GetWindow()))
 	{
@@ -316,9 +333,6 @@ void Candela::StartPipeline()
 			GLClasses::DisplayFrameRate(app.GetWindow(), "Candela ");
 			continue;
 		}
-
-		// 
-		glm::vec3 SunDirection = glm::normalize(_SunDirection);
 
 		InternalRenderResolution = RoundToNearest(InternalRenderResolution, 0.25f);
 
@@ -337,7 +351,7 @@ void Candela::StartPipeline()
 		InverseProjection = glm::inverse(Camera.GetProjectionMatrix());
 		InverseView = glm::inverse(Camera.GetViewMatrix());
 
-		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), SunDirection};
+		CommonUniforms UniformBuffer = { View, Projection, InverseView, InverseProjection, PreviousProjection, PreviousView, glm::inverse(PreviousProjection), glm::inverse(PreviousView), (int)app.GetCurrentFrame(), glm::vec3(0.0)};
 
 		// Ye 
 
@@ -347,12 +361,20 @@ void Candela::StartPipeline()
 
 		for (int i = 0; i < Subframes; i++) {
 			float Hash = RNG.Float();
-			Matrices[i] = glm::rotate(glm::mat4(1.0f), CurrentAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-			CurrentAngle += DeltaTime * Increment * Hash;
+			Matrices[i] = glm::rotate(glm::mat4(1.0f), CurrentBoxAngle + AngleBias, glm::vec3(0.0f, 1.0f, 0.0f));
+			SmoothMatrices[i] = glm::rotate(glm::mat4(1.0f), CurrentBoxAngleSmooth, glm::vec3(0.0f, 1.0f, 0.0f));
+			CurrentBoxAngle += (1.0f / float(Subframes)) * Increment * (1.0f + Hash);
+			CurrentBoxAngleSmooth += (1.0f / float(Subframes)) * 3.14f * 2.0f * 0.01f * ShapeSpeed * (1.0f + 0.0f);
 		}
+
+		CurrentBoxAngle = glm::mod(CurrentBoxAngle, 6.28f * 256.0f);
+		CurrentBoxAngleSmooth = glm::mod(CurrentBoxAngleSmooth, 6.28f * 512.0f);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, MatrixSSBO);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 16 * (Subframes), (void*)&Matrices[0], GL_DYNAMIC_DRAW);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, SmoothMatrixSSBO);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 16 * (Subframes), (void*)&SmoothMatrices[0], GL_DYNAMIC_DRAW);
 		
 		// Post processing passes :
 
@@ -375,8 +397,16 @@ void Candela::StartPipeline()
 		RenderShader.SetVector2f("u_InvRes", 1.0f / glm::vec2(app.GetWidth(), app.GetHeight()));
 		RenderShader.SetVector2f("u_Res", glm::vec2(app.GetWidth(), app.GetHeight()));
 		RenderShader.SetInteger("u_Subframes", Subframes);
+		RenderShader.SetInteger("u_SHAPE", CurrentShape);
+		RenderShader.SetFloat("u_Thickness", ShapeThickness);
+
+		RenderShader.SetInteger("u_Circuit", 0);
 		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, MatrixSSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, SmoothMatrixSSBO);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, CircuitBoard.GetTextureID());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

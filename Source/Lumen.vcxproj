@@ -157,8 +157,6 @@
     <ClInclude Include="Core\Frustum.h" />
     <ClInclude Include="Core\Macros.h" />
     <ClInclude Include="Core\MathsHelpers.h" />
-    <ClInclude Include="Core\Physics\PhysicsApi.h" />
-    <ClInclude Include="Core\Physics\PhysicsEntity.h" />
     <ClInclude Include="Core\Plane.h" />
     <ClInclude Include="Core\Player.h" />
     <ClInclude Include="Core\Entity.h" />
@@ -184,7 +182,6 @@
     <ClInclude Include="Core\OrthographicCamera.h" />
     <ClInclude Include="Core\Pipeline.h" />
     <ClInclude Include="Core\ShaderManager.h" />
-    <ClInclude Include="Core\SphereLight.h" />
     <ClInclude Include="Core\Threadpool.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\Utils\Random.h" />
@@ -219,7 +216,6 @@
     <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Frustum.cpp" />
     <ClCompile Include="Core\MathsHelpers.cpp" />
-    <ClCompile Include="Core\Physics\PhysicsApi.cpp" />
     <ClCompile Include="Core\Player.cpp" />
     <ClCompile Include="Core\FpsCamera.cpp" />
     <ClCompile Include="Core\GLClasses\ComputeShader.cpp" />
@@ -274,6 +270,7 @@
     <None Include="Core\Shaders\BasicVert.glsl" />
     <None Include="Core\Shaders\FBOVert.glsl" />
     <None Include="Core\Shaders\Render.glsl" />
+    <None Include="Core\Shaders\SDF.glsl" />
     <None Include="Core\Shaders\TraverseBVH.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

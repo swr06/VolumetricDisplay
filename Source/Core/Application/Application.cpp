@@ -145,7 +145,7 @@ namespace Candela
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
 		// Use the latest ogl version
-		m_Window = glfwCreateWindow(m_Width, m_Height, "Candela Mechanics  | Loading Models, Shaders, Data Files, Textures etc..", NULL, NULL); 
+		m_Window = glfwCreateWindow(m_Width, m_Height, "Volumetric Display | LOADING...", NULL, NULL); 
 
 		if (!m_Window)
 		{
