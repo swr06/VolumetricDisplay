@@ -61,11 +61,23 @@ vec2 hash2()
 	return fract(sin(vec2(HASH2SEED += 0.1, HASH2SEED += 0.1)) * vec2(43758.5453123, 22578.1459123));
 }
 
+// Polar 
+
+float GetPixelTheta(float x, float y) {
+    return atan(x,y);
+}
+
+float GetPixelRadii(float x, float y) {
+    return length(vec2(x,y)) * 2.f;
+}
+
+// Sky gradient 
 vec3 GetSky(float R)
 {
     return 1.0f * mix(vec3(0.2f, 0.4f, 0.8f), mix(vec3(1.0f), vec3(1.0f, 0.3f, 0.0f) * 1.5f, 1.0f - clamp(pow(0.0f,1.0f/15.0f),0.8f,1.f)),sqrt(1.0f-R)/1.3f);
 }
 
+// Get incident ray at some UV
 vec3 SampleIncidentRayDirection(vec2 screenspace)
 {
 	vec4 clip = vec4(screenspace * 2.0f - 1.0f, -1.0, 1.0);
@@ -73,6 +85,7 @@ vec3 SampleIncidentRayDirection(vec2 screenspace)
 	return normalize(vec3(u_InverseView * eye));
 }
 
+// raybox
 vec2 IntersectBox(in vec3 ro, in vec3 rd, in vec3 invdir, in vec3 rad, out vec3 oN) 
 {
     vec3 m = invdir;
@@ -86,6 +99,7 @@ vec2 IntersectBox(in vec3 ro, in vec3 rd, in vec3 invdir, in vec3 rad, out vec3 
     oN = -sign(rd)*step(t1.yzx,t1.xyz)*step(t1.zxy,t1.xyz);
     return vec2( tN, tF );
 }
+
 
 float sdfOct(in vec3 pos)
 {
@@ -318,9 +332,9 @@ void main() {
 
     Color /= float(u_Subframes);
 
-    Color = 1.0f - exp(-Color);
 
     o_Color = vec4(vec3(Color),1.);
+    o_Color.xyz = 1.0f - exp(-o_Color.xyz);
 
     vec2 Reprojected = Reprojection(RayOrigin+BaseDirection*max(FittedBox.x,FittedBox.y)).xy;
     vec3 PrevColor = texture(u_Temporal, Reprojected).xyz;
