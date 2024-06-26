@@ -7,7 +7,7 @@ namespace Candela
 	{
 		m_Acceleration = glm::vec3(0.0f);
 		m_Velocity = glm::vec3(0.0f);
-		m_Position = glm::vec3(0.1f, 4.0f, 0.1f);
+		m_Position = glm::vec3(8.0f, 2.5f, 12.0f);
 		Freefly = true;
 		m_isOnGround = false;
 		m_AABB.m_Position = m_Position;

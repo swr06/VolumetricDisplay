@@ -26,4 +26,39 @@ float sdCutSph( in vec3 p2, in float ra, float rb, in float d )
     }
 }
 
+
 // by iq ^
+
+const float epsilon = 0.0002;
+const float fov = radians(35.);
+const float mandelbulb_power = 8.;
+const float view_radius = 20.;
+const int mandelbulb_iter_num = 12;
+const float camera_distance = 4.;
+const float rotation_speed = 1./36.5;
+
+float mandelbulb_sdf(vec3 pos) {
+	vec3 z = pos;
+	float dr = 1.0;
+	float r = 0.0;
+	for (int i = 0; i < mandelbulb_iter_num ; i++)
+	{
+		r = length(z);
+		if (r>1.5) break;
+		
+		// convert to polar coordinates
+		float theta = acos(z.z / r);
+		float phi = atan(z.y, z.x);
+
+		dr =  pow( r, mandelbulb_power-1.0)*mandelbulb_power*dr + 1.0;
+		
+		// scale and rotate the point
+		float zr = pow( r,mandelbulb_power);
+		theta = theta*mandelbulb_power;
+		phi = phi*mandelbulb_power;
+		
+		// convert back to cartesian coordinates
+		z = pos + zr*vec3(sin(theta)*cos(phi), sin(phi)*sin(theta), cos(theta));
+	}
+	return 0.5*log(r)*r/dr;
+}

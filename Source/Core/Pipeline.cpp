@@ -68,9 +68,10 @@ float DeltaTime = 0.0f;
 // SIM 
 float RotSpeed = 1.0f;
 int Subframes = 128;
+int TemporalFrames = 3;
 
 float ShapeSpeed = 0.5f;
-float ShapeThickness = 1.0f;
+float ShapeThickness = 0.666f;
 int CurrentShape = 0;
 
 float AngleBias = 0.0f;
@@ -81,8 +82,8 @@ float CurrentBoxAngleSmooth = 0.0f;
 // Render list 
 std::vector<Candela::Entity*> EntityRenderList;
 
-// GBuffers
-GLClasses::Framebuffer GBuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}, {GL_R16I, GL_RED_INTEGER, GL_SHORT, false, false} }, false, true);
+// RenderBuffers
+GLClasses::Framebuffer RenderBuffers[2] = { GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true),GLClasses::Framebuffer(16, 16, {{GL_RGBA16F, GL_RGBA, GL_FLOAT, false, false}}, false, true) };
 
 static double RoundToNearest(double n, double x) {
 	return round(n / x) * x;
@@ -134,8 +135,9 @@ public:
 			ImGui::SliderFloat("Angle Bias", &AngleBias, -6.282, 6.282);
 			ImGui::SliderFloat("Current Angle", &CurrentBoxAngle, CurrentBoxAngle + -6.282, CurrentBoxAngle + 6.282);
 			ImGui::SliderInt("Subframes", &Subframes, 1, 384);
+			ImGui::SliderInt("Temporal Frames (Reduce this to reduce temporal lag or ghosting)", &TemporalFrames, 1, 128);
 			ImGui::NewLine();
-			ImGui::SliderInt("Current Shape", &CurrentShape, 0, 2);
+			ImGui::SliderInt("Current Shape", &CurrentShape, 0, 3);
 			ImGui::SliderFloat("Shape Thickness", &ShapeThickness, 0.1f, 8.0f);
 			ImGui::SliderFloat("Shape Rotation Speed", &ShapeSpeed, 0.0f, 4.0f);
 			ImGui::NewLine();
@@ -339,7 +341,11 @@ void Candela::StartPipeline()
 		// Prepare Intersector
 		Intersector.PushEntities(EntityRenderList);
 		Intersector.BufferEntities();
-		GBuffer.SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		RenderBuffers[0].SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+		RenderBuffers[1].SetSize(app.GetWidth() * InternalRenderResolution, app.GetHeight() * InternalRenderResolution);
+
+		auto& CurrentRenderBuffer = RenderBuffers[app.GetCurrentFrame() % 2];
+		auto& PrevRenderBuffer = RenderBuffers[int(!bool(app.GetCurrentFrame() % 2))];
 		
 		PreviousProjection = Camera.GetProjectionMatrix();
 		PreviousView = Camera.GetViewMatrix();
@@ -362,9 +368,9 @@ void Candela::StartPipeline()
 		for (int i = 0; i < Subframes; i++) {
 			float Hash = RNG.Float();
 			Matrices[i] = glm::rotate(glm::mat4(1.0f), CurrentBoxAngle + AngleBias, glm::vec3(0.0f, 1.0f, 0.0f));
-			SmoothMatrices[i] = glm::rotate(glm::mat4(1.0f), CurrentBoxAngleSmooth, glm::vec3(0.0f, 1.0f, 0.0f));
+			SmoothMatrices[i] = glm::rotate(glm::mat4(1.0f), CurrentBoxAngleSmooth, glm::vec3(0.5f, 0.95f, 0.6f));
 			CurrentBoxAngle += (1.0f / float(Subframes)) * Increment * (1.0f + Hash);
-			CurrentBoxAngleSmooth += (1.0f / float(Subframes)) * 3.14f * 2.0f * 0.01f * ShapeSpeed * (1.0f + 0.0f);
+			CurrentBoxAngleSmooth += (1.0f / float(Subframes)) * 3.14f * 2.0f * 0.01f * ShapeSpeed * 0.5f * (1.0f + 0.0f);
 		}
 
 		CurrentBoxAngle = glm::mod(CurrentBoxAngle, 6.28f * 256.0f);
@@ -386,7 +392,7 @@ void Candela::StartPipeline()
 
 		// Render! 
 
-		GBuffer.Bind();
+		CurrentRenderBuffer.Bind();
 		RenderShader.Use();
 
 		RenderShader.SetFloat("u_zNear", Camera.GetNearPlane());
@@ -394,13 +400,17 @@ void Candela::StartPipeline()
 		RenderShader.SetFloat("u_Time", glfwGetTime());
 		RenderShader.SetMatrix4("u_InverseProjection", glm::inverse(Camera.GetProjectionMatrix()));
 		RenderShader.SetMatrix4("u_InverseView", glm::inverse(Camera.GetViewMatrix()));
+		RenderShader.SetMatrix4("u_PrevProjection", PreviousProjection);
+		RenderShader.SetMatrix4("u_PrevView", PreviousView);
 		RenderShader.SetVector2f("u_InvRes", 1.0f / glm::vec2(app.GetWidth(), app.GetHeight()));
 		RenderShader.SetVector2f("u_Res", glm::vec2(app.GetWidth(), app.GetHeight()));
+		RenderShader.SetInteger("u_TemporalFrames", TemporalFrames);
 		RenderShader.SetInteger("u_Subframes", Subframes);
 		RenderShader.SetInteger("u_SHAPE", CurrentShape);
 		RenderShader.SetFloat("u_Thickness", ShapeThickness);
 
 		RenderShader.SetInteger("u_Circuit", 0);
+		RenderShader.SetInteger("u_Temporal", 1);
 		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, MatrixSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, SmoothMatrixSSBO);
@@ -408,11 +418,14 @@ void Candela::StartPipeline()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, CircuitBoard.GetTextureID());
 
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, PrevRenderBuffer.GetTexture());
+
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		ScreenQuadVAO.Unbind();
 
-		GBuffer.Unbind();
+		CurrentRenderBuffer.Unbind();
 
 		// Blit! 
 
@@ -423,7 +436,7 @@ void Candela::StartPipeline()
 		BasicBlitShader.SetInteger("u_Texture", 0);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, GBuffer.GetTexture());
+		glBindTexture(GL_TEXTURE_2D, CurrentRenderBuffer.GetTexture());
 
 		ScreenQuadVAO.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);

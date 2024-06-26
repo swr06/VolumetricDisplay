@@ -12,17 +12,21 @@ uniform float u_zNear;
 uniform float u_zFar;
 uniform mat4 u_InverseProjection;
 uniform mat4 u_InverseView;
+uniform mat4 u_PrevProjection;
+uniform mat4 u_PrevView;
 uniform float u_Time;
 
 uniform vec2 u_InvRes;
 uniform vec2 u_Res;
 
 uniform int u_Subframes;
+uniform int u_TemporalFrames;
 
 uniform float u_Thickness;
 uniform int u_SHAPE;
 
 uniform sampler2D u_Circuit;
+uniform sampler2D u_Temporal;
 
 in vec2 v_TexCoords;
 
@@ -167,6 +171,11 @@ bool LEDMatrix(vec3 p) {
             break;
         };
 
+        case 3 : {
+            d = mandelbulb_sdf(p * 1.4) * 5.0f;
+            break;
+        }
+
         default : {
             d = sdfSph(p);
         }
@@ -227,7 +236,7 @@ vec3 RayColor(in vec3 AcRayOrigin, in vec3 AcRayDirection, in vec3 TrRayOrigin, 
     //SamplePosition = (floor((SamplePosition * vec3(128.0f, 256.0f, 128.0f) * 0.5f) / dotSpace) * dotSpace + (0.5 * dotSpace)) / 8.0f;
 
     if (LEDMatrix((SamplePosition))) {
-        ComputedColor = vec3(1., 1., 1.) * 12.0f;
+        ComputedColor = vec3(1., 1., 1.) * 16.0f;
     }
 
     vec3 FinalColor = ComputedColor ; 
@@ -237,20 +246,52 @@ vec3 RayColor(in vec3 AcRayOrigin, in vec3 AcRayDirection, in vec3 TrRayOrigin, 
 
 }
 
+vec3 Reprojection(vec3 WorldPos) 
+{
+	vec4 ProjectedPosition = u_PrevProjection * u_PrevView * vec4(WorldPos, 1.0f);
+	ProjectedPosition.xyz /= ProjectedPosition.w;
+	ProjectedPosition.xyz = ProjectedPosition.xyz * 0.5f + 0.5f;
+	return ProjectedPosition.xyz;
+
+}
+
+void Temporal(vec3 Color,vec2 Coords) {
+
+    bool Valid = true;
+
+    if (Coords != clamp(Coords, 0.004f, 0.996f)) {
+        Valid = false;
+    }
+
+    if (!Valid) return;
+
+    int NumFrames = u_TemporalFrames;
+    float TemporalFactor = 1.0f - (1. / float(NumFrames));
+    o_Color.xyz = mix(o_Color.xyz,Color,TemporalFactor);
+}
+
 void main() {
 
     HASH2SEED = (v_TexCoords.x * v_TexCoords.y) * 64.0 * 8.0f;
 	HASH2SEED += fract(u_Time) * 128.0f;
 
-    vec3 RayDirection = SampleIncidentRayDirection(v_TexCoords);
+    vec2 JitterHash = (vec2(hash2()) * 2.0f - 1.0f);
 
+    vec3 BaseDirection = SampleIncidentRayDirection(v_TexCoords);
     vec3 RayOrigin = u_InverseView[3].xyz;
     vec3 N; 
 
+    vec3 RayDirection = SampleIncidentRayDirection(v_TexCoords + (JitterHash.xy*u_InvRes));
+
+    vec2 FittedBox = IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N);
+
     // Box test
-    if (IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).x < 0.0f && IntersectBox(RayOrigin, RayDirection, 1.0/RayDirection, BoxExtent.xyx + vec3(0.02f), N).y < 0.0f) {
+    if (FittedBox.x < 0.0f && FittedBox.y < 0.0f) {
+        vec2 Reprojected = Reprojection(RayOrigin+BaseDirection*64.0f).xy;
+        vec3 PrevColor = texture(u_Temporal, Reprojected).xyz;
         o_Color = vec4(GetSky(RayDirection.y), 1.);
         o_Color.xyz = 1.0f - exp(-o_Color.xyz);
+        Temporal(PrevColor,Reprojected);
         return;
     }
 
@@ -261,12 +302,13 @@ void main() {
         
         int i = SUBFRAME;
 
-        vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f) * 0.2f;
+        vec3 Hash = (vec3(hash2(), hash2().x) * 2.0f - 1.0f) * 0.33f; 
         vec2 Hash2 = hash2();
         
-        RayDirection = SampleIncidentRayDirection(v_TexCoords + Hash2 * u_InvRes); // Antialiasing :) 
+        RayDirection = SampleIncidentRayDirection(v_TexCoords + (Hash.xy*u_InvRes));
         vec3 CurrentRayOrigin = vec3(Matrices[i] * vec4(RayOrigin, 1.0f));
         vec3 CurrentRayDirection = vec3(Matrices[i] * vec4(RayDirection, 0.0f));
+        //vec3 CurrentRayDirection = vec3(Matrices[i] * vec4(SampleIncidentRayDirection(v_TexCoords + (Hash.xy*u_InvRes)), 0.0f));
         vec3 InvDir = 1.0f / CurrentRayDirection;
 
         vec3 CurrentColor = RayColor(RayOrigin, RayDirection, CurrentRayOrigin, CurrentRayDirection, InvDir, Matrices[i]);
@@ -279,4 +321,8 @@ void main() {
     Color = 1.0f - exp(-Color);
 
     o_Color = vec4(vec3(Color),1.);
+
+    vec2 Reprojected = Reprojection(RayOrigin+BaseDirection*max(FittedBox.x,FittedBox.y)).xy;
+    vec3 PrevColor = texture(u_Temporal, Reprojected).xyz;
+    Temporal(PrevColor,Reprojected);
 }
